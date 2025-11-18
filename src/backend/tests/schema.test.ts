@@ -6,11 +6,11 @@
 import request from 'supertest';
 import { createApp } from '../app.js';
 import { prisma } from '../utils/prisma.js';
-import type { Express } from 'express';
+import type { Application } from 'express';
 import { FieldDataType } from '@prisma/client';
 
 describe('スキーマAPI', () => {
-  let app: Express;
+  let app: Application;
   let adminToken: string;
   let adminUserId: string;
   let userToken: string;
@@ -49,12 +49,17 @@ describe('スキーマAPI', () => {
     adminUserId = adminRegisterResponse.body.data.user.user_id;
 
     // 管理者ロールを付与
-    await prisma.userRole.create({
-      data: {
-        user_id: adminUserId,
-        role_name: 'administrator',
-      },
+    const adminRole = await prisma.role.findUnique({
+      where: { role_name: 'administrator' },
     });
+    if (adminRole) {
+      await prisma.userRole.create({
+        data: {
+          user_id: adminUserId,
+          role_id: adminRole.role_id,
+        },
+      });
+    }
 
     // デフォルトスキーマを取得
     const defaultSchema = await prisma.schema.findFirst({
@@ -205,7 +210,7 @@ describe('スキーマAPI', () => {
                 },
                 {
                   field_name: '新しいフィールド2',
-                  data_type: FieldDataType.number,
+                  data_type: FieldDataType.text,
                   is_required: false,
                   display_order: 2,
                 },

@@ -6,11 +6,11 @@
 import request from 'supertest';
 import { createApp } from '../app.js';
 import { prisma } from '../utils/prisma.js';
-import type { Express } from 'express';
+import type { Application } from 'express';
 import { SpecificationStatus } from '@prisma/client';
 
 describe('仕様書API', () => {
-  let app: Express;
+  let app: Application;
   let testUserEmail: string;
   let testUserPassword: string;
   let testUserToken: string;
@@ -132,29 +132,22 @@ describe('仕様書API', () => {
   });
 
   describe('GET /api/specifications', () => {
-    let spec1Id: string;
-    let spec2Id: string;
-    let spec3Id: string;
-
     beforeAll(async () => {
       // テスト用仕様書を3件作成
-      const spec1 = await request(app)
+      await request(app)
         .post('/api/specifications')
         .set('Authorization', `Bearer ${testUserToken}`)
         .send({ title: '仕様書A' });
-      spec1Id = spec1.body.data.specification_id;
 
-      const spec2 = await request(app)
+      await request(app)
         .post('/api/specifications')
         .set('Authorization', `Bearer ${testUserToken}`)
         .send({ title: '仕様書B' });
-      spec2Id = spec2.body.data.specification_id;
 
-      const spec3 = await request(app)
+      await request(app)
         .post('/api/specifications')
         .set('Authorization', `Bearer ${testUserToken}`)
         .send({ title: '仕様書C' });
-      spec3Id = spec3.body.data.specification_id;
     });
 
     test('正常系: 自分の仕様書一覧を取得', async () => {
@@ -418,7 +411,7 @@ describe('仕様書API', () => {
       expect(response.body.status).toBe('success');
 
       // 削除されたことを確認
-      const getResponse = await request(app)
+      await request(app)
         .get(`/api/specifications/${specId}`)
         .set('Authorization', `Bearer ${testUserToken}`)
         .expect(404);
