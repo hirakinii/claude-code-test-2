@@ -358,8 +358,8 @@ describe('validation', () => {
       if (!result.success) {
         const formatted = formatZodErrors(result.error);
 
-        expect(formatted).toHaveProperty('deliverables.0.name');
-        expect(formatted).toHaveProperty('deliverables.0.quantity');
+        expect('deliverables.0.name' in formatted).toBe(true);
+        expect('deliverables.0.quantity' in formatted).toBe(true);
       }
     });
   });

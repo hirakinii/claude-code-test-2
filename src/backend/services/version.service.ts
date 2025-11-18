@@ -11,7 +11,6 @@
  */
 import { SchemaField, SpecificationStatus } from '@prisma/client';
 import { prisma } from '../utils/prisma.js';
-import { BadRequestError } from '../errors/AppError.js';
 
 /**
  * バージョン番号をパース
@@ -99,7 +98,7 @@ export const calculateNewVersion = (
  * @returns 新しいバージョンとステータス
  */
 export const updateSpecificationVersion = async (
-  specificationId: string,
+  _specificationId: string,
   schemaId: string,
   contentMap: Map<string, unknown>,
   currentVersion: string
@@ -115,10 +114,7 @@ export const updateSpecificationVersion = async (
   });
 
   // 必須項目チェック
-  const { isComplete, missingFields } = checkRequiredFields(
-    requiredFields,
-    contentMap
-  );
+  const { isComplete } = checkRequiredFields(requiredFields, contentMap);
 
   // 新しいバージョンを計算
   const { version, status } = calculateNewVersion(

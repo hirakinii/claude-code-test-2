@@ -6,10 +6,10 @@
 import request from 'supertest';
 import { createApp } from '../app.js';
 import { prisma } from '../utils/prisma.js';
-import type { Express } from 'express';
+import type { Application } from 'express';
 
 describe('セキュリティテスト', () => {
-  let app: Express;
+  let app: Application;
   let testUserToken: string;
   let testUserId: string;
 
