@@ -7,6 +7,16 @@ import { PrismaClient } from '@prisma/client';
 import { logger } from '../config/logger.js';
 
 /**
+ * Prisma Query Event型定義
+ */
+interface QueryEvent {
+  query: string;
+  params: string;
+  duration: number;
+  target: string;
+}
+
+/**
  * グローバル型定義（開発環境でのホットリロード対応）
  */
 declare global {
@@ -28,7 +38,7 @@ export const prisma =
   });
 
 // クエリログをWinstonに転送
-prisma.$on('query', (e) => {
+prisma.$on('query', (e: QueryEvent) => {
   logger.debug('Prisma Query', {
     query: e.query,
     params: e.params,
