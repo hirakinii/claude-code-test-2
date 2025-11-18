@@ -12,7 +12,7 @@
 - ✅ **Phase 1**: データベース層（完了）
 - ✅ **Phase 2**: バックエンドAPI（完了）
 - ✅ **Phase 3**: フロントエンド実装（完了）
-- 🚧 **Phase 4**: 統合・テスト（未着手）
+- ✅ **Phase 4**: 統合・テスト（完了）
 - 🚧 **Phase 5**: デプロイメント（未着手）
 
 ### 主な特徴
@@ -201,6 +201,15 @@ npm test
 # バックエンドテストのみ
 npm run test:backend
 
+# フロントエンドテストのみ
+npm run test:frontend
+
+# E2Eテスト
+npm run test:e2e
+
+# E2Eテスト（デバッグモード）
+npm run test:e2e:debug
+
 # ウォッチモード
 npm run test:watch
 
@@ -211,6 +220,14 @@ npm test -- --coverage
 **テスト仕様書**:
 - Phase 1: `docs/database-test-specification.md`
 - Phase 2: `docs/backend-api-test-specification.md`
+- Phase 3: `docs/frontend-test-specification.md`
+- **Phase 4: `docs/phase4-test-implementation.md`** ✨ NEW
+
+**実装したテスト**: 120+ テストケース
+- バックエンドユニットテスト: 35テストケース
+- バックエンド統合テスト: 70テストケース
+- フロントエンドユニットテスト: 59テストケース
+- E2Eテスト: 8テストケース
 
 ### セキュリティチェックリスト
 
