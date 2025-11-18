@@ -24,6 +24,10 @@
     "test:watch": "jest --watch",
     "test:backend": "jest --testPathPattern=src/backend",
     "test:frontend": "jest --testPathPattern=src/frontend",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:debug": "playwright test --debug",
     "lint": "eslint . --ext .ts,.tsx",
     "type-check": "tsc --noEmit",
     "type-check:backend": "tsc -p tsconfig.backend.json --noEmit",
@@ -59,6 +63,7 @@
     "zod": "^3.22.4"
   },
   "devDependencies": {
+    "@playwright/test": "^1.56.1",
     "@testing-library/jest-dom": "^6.1.5",
     "@testing-library/react": "^14.1.2",
     "@testing-library/user-event": "^14.5.1",
