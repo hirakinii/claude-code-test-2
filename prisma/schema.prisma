@@ -1,0 +1,270 @@
+// Prisma Schema for 仕様書作成支援アプリ
+// データベース: PostgreSQL
+// アーキテクチャ: メタモデル・アーキテクチャ（EAV + ハイブリッド）
+//
+// 参照:
+// - docs/仕様書作成アプリ データモデル生成.md
+// - docs/implementation-strategy.md
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// Enum型定義
+// ============================================================================
+
+/// フィールドデータ型
+/// SchemaField.data_type に対応
+enum FieldDataType {
+  text     // テキスト（1行入力）
+  textarea // テキストエリア（複数行入力）
+  radio    // ラジオボタン（単一選択）
+  checkbox // チェックボックス（複数選択）
+  date     // 日付入力
+  list     // リスト（1:N の構造化データ）
+}
+
+/// 仕様書ステータス
+/// Specification.status に対応
+enum SpecificationStatus {
+  editing   // 編集中
+  reviewing // 確認中
+  saved     // 保存済み
+}
+
+/// ユーザーロール名
+/// Role.role_name に対応
+enum RoleName {
+  administrator // 仕様書管理者
+  creator       // 仕様書作成者
+}
+
+// ============================================================================
+// ユーザーおよび権限エンティティ
+// ============================================================================
+
+/// Userエンティティ
+/// ログインする個人を識別
+///
+/// セキュリティ注意:
+/// - password_hash は DB にのみ存在し、API レスポンスには含めない
+model User {
+  user_id       String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email         String   @unique @db.VarChar(255)
+  password_hash String   @db.VarChar(255)
+  full_name     String   @db.VarChar(255)
+  created_at    DateTime @default(now()) @db.Timestamptz(6)
+
+  // リレーション
+  specifications Specification[]
+  user_roles     UserRole[]
+
+  @@map("users")
+}
+
+/// Roleエンティティ
+/// RBAC（ロールベースアクセス制御）のロール定義
+model Role {
+  role_id   Int      @id @default(autoincrement())
+  role_name RoleName @unique
+
+  // リレーション
+  user_roles UserRole[]
+
+  @@map("roles")
+}
+
+/// UserRoleエンティティ（ジャンクションテーブル）
+/// User と Role の多対多（N:M）関係を解決
+model UserRole {
+  user_id String @db.Uuid
+  role_id Int
+
+  // リレーション
+  user User @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+  role Role @relation(fields: [role_id], references: [role_id], onDelete: Cascade)
+
+  @@id([user_id, role_id])
+  @@map("user_roles")
+}
+
+// ============================================================================
+// スキーマ（メタモデル）エンティティ
+// ============================================================================
+
+/// Schemaエンティティ
+/// テンプレート全体を定義するマスターエンティティ
+/// 例: 「デフォルトスキーマ」
+model Schema {
+  schema_id   String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  schema_name String   @db.VarChar(255)
+  is_default  Boolean  @default(false)
+  created_at  DateTime @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime @updatedAt @db.Timestamptz(6)
+
+  // リレーション
+  categories     SchemaCategory[]
+  specifications Specification[]
+
+  @@map("schemas")
+}
+
+/// SchemaCategoryエンティティ
+/// ウィザードの各ステップを定義
+/// 例: "ステップ 1 基本情報", "ステップ 2 調達の種別とスコープ"
+model SchemaCategory {
+  category_id   String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  schema_id     String @db.Uuid
+  category_name String @db.VarChar(255)
+  description   String @db.Text
+  display_order Int
+
+  // リレーション
+  schema Schema        @relation(fields: [schema_id], references: [schema_id], onDelete: Cascade)
+  fields SchemaField[]
+
+  @@index([schema_id, display_order], name: "idx_schema_categories_schema_order")
+  @@map("schema_categories")
+}
+
+/// SchemaFieldエンティティ
+/// 各カテゴリ内の個別の入力項目を定義
+/// 例: "調達の目的", "件名", "納品物"
+model SchemaField {
+  field_id           String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  category_id        String        @db.Uuid
+  field_name         String        @db.VarChar(255)
+  data_type          FieldDataType
+  is_required        Boolean       @default(false)
+  options            Json?         // チェックボックス/ラジオボタンの選択肢（FieldOptions型）
+  placeholder_text   String?       @db.Text
+  list_target_entity String?       @db.VarChar(100) // 'Deliverable', 'BusinessTask' 等
+  display_order      Int
+
+  // リレーション
+  category              SchemaCategory          @relation(fields: [category_id], references: [category_id], onDelete: Cascade)
+  specification_content SpecificationContent[]
+
+  @@index([category_id, display_order], name: "idx_schema_fields_category_order")
+  @@map("schema_fields")
+}
+
+// ============================================================================
+// 仕様書（データ）エンティティ
+// ============================================================================
+
+/// Specificationエンティティ
+/// すべてのデータインスタンス（作成者による入力内容）を集約する「マスター」エンティティ
+model Specification {
+  specification_id String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  author_user_id   String              @db.Uuid
+  schema_id        String              @db.Uuid
+  title            String?             @db.VarChar(500) // 非正規化フィールド
+  status           SpecificationStatus @default(editing)
+  version          String              @default("1.0") @db.VarChar(20)
+  created_at       DateTime            @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime            @updatedAt @db.Timestamptz(6)
+
+  // リレーション
+  author                     User                        @relation(fields: [author_user_id], references: [user_id], onDelete: Cascade)
+  schema                     Schema                      @relation(fields: [schema_id], references: [schema_id], onDelete: Restrict)
+  specification_content      SpecificationContent[]
+  deliverables               Deliverable[]
+  contractor_requirements    ContractorRequirement[]
+  basic_business_requirements BasicBusinessRequirement[]
+  business_tasks             BusinessTask[]
+
+  @@index([author_user_id, updated_at(sort: Desc)], name: "idx_specifications_author_updated")
+  @@index([status], name: "idx_specifications_status")
+  @@map("specifications")
+}
+
+/// SpecificationContentエンティティ
+/// EAV (Entity-Attribute-Value) パターンの中核
+/// SchemaField（質問）に対する「回答」の値を格納
+model SpecificationContent {
+  content_id       String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  specification_id String @db.Uuid
+  field_id         String @db.Uuid
+  value            Json   // JSONB型で格納（FieldValue型）
+
+  // リレーション
+  specification Specification @relation(fields: [specification_id], references: [specification_id], onDelete: Cascade)
+  field         SchemaField   @relation(fields: [field_id], references: [field_id], onDelete: Restrict)
+
+  @@unique([specification_id, field_id], name: "uq_specification_content_spec_field")
+  @@index([specification_id, field_id], name: "idx_specification_content_spec_field")
+  @@map("specification_content")
+}
+
+// ============================================================================
+// 1:N サブエンティティ（動的リスト）
+// ============================================================================
+
+/// Deliverableエンティティ（納品物）
+/// 仕様書に紐づく納品物のリストを管理
+model Deliverable {
+  deliverable_id   String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  specification_id String @db.Uuid
+  name             String @db.VarChar(255)
+  quantity         Int
+  description      String @db.Text
+
+  // リレーション
+  specification Specification @relation(fields: [specification_id], references: [specification_id], onDelete: Cascade)
+
+  @@index([specification_id], name: "idx_deliverables_specification")
+  @@map("deliverables")
+}
+
+/// ContractorRequirementエンティティ（受注者要件）
+/// 仕様書に紐づく受注者要件のリストを管理
+model ContractorRequirement {
+  req_id           String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  specification_id String @db.Uuid
+  category         String @db.VarChar(255)
+  description      String @db.Text
+
+  // リレーション
+  specification Specification @relation(fields: [specification_id], references: [specification_id], onDelete: Cascade)
+
+  @@index([specification_id], name: "idx_contractor_requirements_specification")
+  @@map("contractor_requirements")
+}
+
+/// BasicBusinessRequirementエンティティ（業務基本要件）
+/// 仕様書に紐づく業務基本要件のリストを管理
+model BasicBusinessRequirement {
+  basic_req_id     String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  specification_id String @db.Uuid
+  category         String @db.VarChar(255)
+  description      String @db.Text
+
+  // リレーション
+  specification Specification @relation(fields: [specification_id], references: [specification_id], onDelete: Cascade)
+
+  @@index([specification_id], name: "idx_basic_business_requirements_specification")
+  @@map("basic_business_requirements")
+}
+
+/// BusinessTaskエンティティ（業務タスク）
+/// 仕様書に紐づく業務タスクのリストを管理
+/// 重要: 仕様書詳細情報画面に「業務数: N件」として集計表示される
+model BusinessTask {
+  task_id          String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  specification_id String @db.Uuid
+  title            String @db.VarChar(255)
+  detailed_spec    String @db.Text
+
+  // リレーション
+  specification Specification @relation(fields: [specification_id], references: [specification_id], onDelete: Cascade)
+
+  @@index([specification_id], name: "idx_business_tasks_specification")
+  @@map("business_tasks")
+}
