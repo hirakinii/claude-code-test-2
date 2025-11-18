@@ -11,7 +11,7 @@
 - ✅ **Phase 0**: 基盤整備（完了）
 - ✅ **Phase 1**: データベース層（完了）
 - ✅ **Phase 2**: バックエンドAPI（完了）
-- 🚧 **Phase 3**: フロントエンド実装（未着手）
+- ✅ **Phase 3**: フロントエンド実装（完了）
 - 🚧 **Phase 4**: 統合・テスト（未着手）
 - 🚧 **Phase 5**: デプロイメント（未着手）
 
@@ -22,6 +22,9 @@
 - ✅ 完全な監査ログ機能
 - ✅ バージョン管理エンジン（メジャー/マイナー自動判定）
 - ✅ メタモデル・アーキテクチャ（動的スキーマ定義）
+- ✅ ウィザード形式の仕様書作成UI
+- ✅ 自動保存機能（LocalStorage + サーバー永続化）
+- ✅ レスポンシブデザイン（モバイル/タブレット/デスクトップ対応）
 - 🚧 リアルタイムコラボレーション（未実装）
 
 ## 技術スタック
@@ -36,10 +39,14 @@
 - **ログ**: Winston 3.11+
 - **テスト**: Jest 29.7+ + Supertest 6.3+
 
-### Frontend 🚧
-- **フレームワーク**: React 18 + TypeScript（未実装）
-- **状態管理**: Redux Toolkit（未実装）
-- **UI ライブラリ**: Material-UI（未実装）
+### Frontend ✅
+- **フレームワーク**: React 18 + TypeScript 5.3+
+- **ビルドツール**: Vite 5.0+
+- **状態管理**: Redux Toolkit 2.0+
+- **ルーティング**: React Router 6.21+
+- **UI ライブラリ**: Material-UI (MUI) 5.15+
+- **フォーム**: React Hook Form 7.49+
+- **HTTP クライアント**: Axios 1.6+
 
 ### インフラストラクチャ 🚧
 - **クラウドプロバイダー**: Google Cloud
@@ -119,18 +126,38 @@ npm run db:seed
 
 ### アプリケーションの起動
 
-#### バックエンドサーバー
+#### 開発環境（フルスタック）
 
 ```bash
-# 開発モード（ホットリロード対応）
+# バックエンド + フロントエンドを同時起動
 npm run dev
 
-# 本番モード
-npm run build
-npm start
+# バックエンドのみ
+npm run dev:backend
+
+# フロントエンドのみ
+npm run dev:frontend
 ```
 
-サーバーが起動すると `http://localhost:3000` でAPIにアクセスできます。
+起動後、以下のURLでアクセスできます：
+- フロントエンド: `http://localhost:5173`
+- バックエンドAPI: `http://localhost:3000`
+
+#### 本番ビルド
+
+```bash
+# バックエンド + フロントエンドをビルド
+npm run build
+
+# バックエンドのみビルド
+npm run build:backend
+
+# フロントエンドのみビルド
+npm run build:frontend
+
+# 本番モードで起動
+npm start
+```
 
 #### 動作確認
 
@@ -285,8 +312,16 @@ npm test -- --coverage
   - スキーマ: `/api/schema/*`
 
 ### Phase 3: フロントエンド
-- 実装状況: 🚧 未着手
-- 予定技術: React + TypeScript + Redux Toolkit
+- 実装状況: ✅ 完了
+- ドキュメント: `src/frontend/` 各ディレクトリ
+- テスト仕様: `docs/frontend-test-specification.md`
+- 主要機能:
+  - 認証UI（ログイン・登録）
+  - ダッシュボード（仕様書一覧・検索・エクスポート）
+  - ウィザード（ステップ形式の仕様書作成）
+  - 管理画面（スキーマ表示・リセット）
+  - 自動保存・復元機能
+  - レスポンシブデザイン
 
 ## 参考リソース
 
