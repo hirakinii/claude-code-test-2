@@ -8,7 +8,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { env, isDevelopment } from './config/env.js';
-import { logger, logHttpRequest } from './config/logger.js';
+import { logHttpRequest } from './config/logger.js';
 import {
   errorHandler,
   notFoundHandler,
@@ -93,7 +93,7 @@ export const createApp = (): Application => {
   // ヘルスチェックエンドポイント
   // ============================================================================
 
-  app.get('/health', (req: Request, res: Response) => {
+  app.get('/health', (_req: Request, res: Response) => {
     res.json({
       status: 'ok',
       timestamp: new Date().toISOString(),
