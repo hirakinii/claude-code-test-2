@@ -20,6 +20,7 @@ Phase 1では、仕様書作成支援アプリのデータベース層を完全�
 4. **外部キー制約**: リレーションとCASCADE/RESTRICT動作を実装
 5. **デフォルトスキーマのシードデータ**: 5ステップ、10+フィールドを投入
 6. **テスト仕様書**: 包括的なテストケースを作成
+7. **自動テスト実装**: Jest による最小限のテスト（33+ テストケース）
 
 ---
 
@@ -31,7 +32,9 @@ Phase 1では、仕様書作成支援アプリのデータベース層を完全�
 |---------|------|
 | `package.json` | 依存関係とスクリプト定義 |
 | `tsconfig.json` | TypeScript設定（strict mode） |
-| `.env.example` | 環境変数テンプレート |
+| `jest.config.js` | Jest設定 |
+| `.env.example` | 環境変数テンプレート（開発用） |
+| `.env.test` | 環境変数テンプレート（テスト用） |
 
 ### Prismaファイル
 
@@ -39,6 +42,10 @@ Phase 1では、仕様書作成支援アプリのデータベース層を完全�
 |---------|------|
 | `prisma/schema.prisma` | **12エンティティのスキーマ定義** |
 | `prisma/seed.ts` | デフォルトスキーマ・ロールのシードデータ |
+| `prisma/tests/setup.ts` | テスト環境セットアップ |
+| `prisma/tests/schema.test.ts` | スキーマ検証テスト |
+| `prisma/tests/seed.test.ts` | シードデータ検証テスト |
+| `prisma/tests/constraints.test.ts` | 外部キー制約検証テスト |
 | `prisma/README.md` | 本ファイル |
 
 ### ドキュメント
@@ -226,18 +233,80 @@ npm run db:studio
 
 ## テスト実行
 
+### 自動テスト（推奨）
+
+Phase 1では最小限の自動テストを実装しています。
+
+#### 1. テスト環境のセットアップ
+
+```bash
+# テスト用データベース作成
+createdb spec_manager_test
+
+# テスト用環境変数設定
+cp .env.test .env
+
+# 依存関係インストール（未実施の場合）
+npm install
+
+# Prismaクライアント生成
+npm run db:generate
+
+# マイグレーション実行
+npm run db:migrate:dev
+
+# シードデータ投入
+npm run db:seed
+```
+
+#### 2. テスト実行
+
+```bash
+# 全テスト実行
+npm test
+
+# ウォッチモード（ファイル変更時に自動実行）
+npm run test:watch
+
+# カバレッジ付き実行
+npm test -- --coverage
+```
+
+#### 3. テスト内容
+
+| テストファイル | テストケース数 | 検証内容 |
+|--------------|-------------|---------|
+| `schema.test.ts` | 8+ | 12テーブル、3 Enum型、インデックス |
+| `seed.test.ts` | 15+ | デフォルトスキーマ、ロール、フィールド |
+| `constraints.test.ts` | 10+ | CASCADE/RESTRICT、UNIQUE、NOT NULL |
+
+**期待結果**: 全テストが成功 ✅
+
+```
+PASS  prisma/tests/schema.test.ts
+PASS  prisma/tests/seed.test.ts
+PASS  prisma/tests/constraints.test.ts
+
+Test Suites: 3 passed, 3 total
+Tests:       33+ passed, 33+ total
+```
+
+---
+
 ### テスト仕様書の確認
 
 ```bash
 cat docs/database-test-specification.md
 ```
 
-### 手動テスト
+---
+
+### 手動テスト（オプション）
 
 PostgreSQLに接続してテストSQLを実行:
 
 ```bash
-psql -U postgres -d spec_manager_dev
+psql -U postgres -d spec_manager_test
 
 -- テーブル一覧確認
 SELECT table_name
@@ -343,6 +412,7 @@ Phase 1完了前に以下を確認してください:
 - [ ] インデックスがすべて設定されている
 - [ ] 外部キー制約が正しく設定されている
 - [ ] シードデータが投入されている
+- [ ] 自動テストが全て成功する（`npm test`）
 - [ ] Prisma Studio でデータを確認できる
 - [ ] テスト仕様書を確認した
 - [ ] セキュリティ注意事項を理解した
