@@ -6,31 +6,45 @@
 
 このアプリケーションは、開発チームが効率的に仕様書を作成・管理できるように設計されています。
 
+### 実装状況
+
+- ✅ **Phase 0**: 基盤整備（完了）
+- ✅ **Phase 1**: データベース層（完了）
+- ✅ **Phase 2**: バックエンドAPI（完了）
+- 🚧 **Phase 3**: フロントエンド実装（未着手）
+- 🚧 **Phase 4**: 統合・テスト（未着手）
+- 🚧 **Phase 5**: デプロイメント（未着手）
+
 ### 主な特徴
 
-- セキュアな認証・認可システム
-- スケーラブルなアーキテクチャ（1万ユーザー同時接続対応）
-- 完全な監査ログ機能
-- リアルタイムコラボレーション
-- バージョン管理
+- ✅ セキュアな認証・認可システム（JWT + bcrypt + RBAC）
+- ✅ スケーラブルなアーキテクチャ（1万ユーザー同時接続対応）
+- ✅ 完全な監査ログ機能
+- ✅ バージョン管理エンジン（メジャー/マイナー自動判定）
+- ✅ メタモデル・アーキテクチャ（動的スキーマ定義）
+- 🚧 リアルタイムコラボレーション（未実装）
 
 ## 技術スタック
 
-### Backend
-- **言語・ランタイム**: Node.js + TypeScript
-- **フレームワーク**: Express
-- **データベース**: PostgreSQL
-- **ORM**: (TBD)
+### Backend ✅
+- **言語・ランタイム**: Node.js 20 LTS + TypeScript 5.3+
+- **フレームワーク**: Express.js 4.18+
+- **データベース**: PostgreSQL 15+
+- **ORM**: Prisma 5.22+
+- **認証**: JWT + bcrypt
+- **バリデーション**: Zod 3.22+
+- **ログ**: Winston 3.11+
+- **テスト**: Jest 29.7+ + Supertest 6.3+
 
-### Frontend
-- **フレームワーク**: React + TypeScript
-- **状態管理**: (TBD)
-- **UI ライブラリ**: (TBD)
+### Frontend 🚧
+- **フレームワーク**: React 18 + TypeScript（未実装）
+- **状態管理**: Redux Toolkit（未実装）
+- **UI ライブラリ**: Material-UI（未実装）
 
-### インフラストラクチャ
+### インフラストラクチャ 🚧
 - **クラウドプロバイダー**: Google Cloud
-- **コンテナ**: (TBD)
-- **CI/CD**: (TBD)
+- **コンテナ**: Cloud Run（未実装）
+- **CI/CD**: Cloud Build（未実装）
 
 ## セットアップ
 
@@ -50,6 +64,9 @@ cd claude-code-test-2
 # 依存パッケージのインストール
 npm install
 
+# Prisma クライアント生成
+npm run db:generate
+
 # 環境変数の設定
 cp .env.example .env
 # .env ファイルを編集して必要な環境変数を設定
@@ -59,41 +76,76 @@ cp .env.example .env
 
 以下の環境変数を `.env` ファイルに設定してください：
 
-```
-# Database
-DATABASE_URL=postgresql://user:password@localhost:5432/dbname
-
-# Application
+```bash
+# Environment
 NODE_ENV=development
+
+# Server
 PORT=3000
+HOST=0.0.0.0
 
-# Security
-JWT_SECRET=your-secret-key
-SESSION_SECRET=your-session-secret
+# Database
+DATABASE_URL="postgresql://postgres:password@localhost:5432/spec_manager_dev?schema=public"
 
-# Google Cloud (本番環境のみ)
-GOOGLE_CLOUD_PROJECT_ID=your-project-id
+# JWT（本番環境では必ず変更すること）
+JWT_SECRET="your-super-secret-jwt-key-min-32-characters-long-change-in-production"
+JWT_EXPIRES_IN=7d
+
+# CORS
+CORS_ORIGIN=http://localhost:5173
+
+# Logging
+LOG_LEVEL=info
+
+# Rate Limiting
+RATE_LIMIT_WINDOW_MS=900000
+RATE_LIMIT_MAX_REQUESTS=100
 ```
+
+**セキュリティ注意**: 本番環境では `JWT_SECRET` を必ず変更してください（32文字以上推奨）。
 
 ### データベースのセットアップ
 
 ```bash
-# マイグレーションの実行
-npm run migrate
+# PostgreSQL データベース作成
+createdb spec_manager_dev
 
-# シードデータの投入（開発環境のみ）
-npm run seed
+# マイグレーションの実行
+npm run db:migrate:dev
+
+# シードデータの投入（必須）
+npm run db:seed
 ```
 
 ### アプリケーションの起動
 
+#### バックエンドサーバー
+
 ```bash
-# 開発モード
+# 開発モード（ホットリロード対応）
 npm run dev
 
 # 本番モード
 npm run build
 npm start
+```
+
+サーバーが起動すると `http://localhost:3000` でAPIにアクセスできます。
+
+#### 動作確認
+
+```bash
+# ヘルスチェック
+curl http://localhost:3000/health
+
+# ユーザー登録
+curl -X POST http://localhost:3000/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "test@example.com",
+    "password": "TestPassword123",
+    "fullName": "テストユーザー"
+  }'
 ```
 
 ## 開発ガイドライン
@@ -119,15 +171,19 @@ npm start
 # 全てのテストを実行
 npm test
 
-# ユニットテストのみ
-npm run test:unit
+# バックエンドテストのみ
+npm run test:backend
 
-# 統合テストのみ
-npm run test:integration
+# ウォッチモード
+npm run test:watch
 
 # カバレッジレポート
-npm run test:coverage
+npm test -- --coverage
 ```
+
+**テスト仕様書**:
+- Phase 1: `docs/database-test-specification.md`
+- Phase 2: `docs/backend-api-test-specification.md`
 
 ### セキュリティチェックリスト
 
@@ -170,15 +226,38 @@ npm run test:coverage
 ```
 .
 ├── src/
-│   ├── backend/       # バックエンドコード
-│   ├── frontend/      # フロントエンドコード
-│   └── shared/        # 共通コード
-├── tests/             # テストコード
-├── migrations/        # データベースマイグレーション
-├── docs/              # ドキュメント
-├── .env.example       # 環境変数のサンプル
-├── CLAUDE.md          # Claude Code用のガイドライン
-└── README.md          # このファイル
+│   ├── backend/           # バックエンドコード ✅
+│   │   ├── config/        # 設定ファイル
+│   │   ├── controllers/   # ルートハンドラー
+│   │   ├── middleware/    # ミドルウェア
+│   │   ├── routes/        # ルーティング定義
+│   │   ├── services/      # ビジネスロジック
+│   │   ├── utils/         # ユーティリティ
+│   │   ├── errors/        # カスタムエラー
+│   │   ├── types/         # 型定義
+│   │   ├── tests/         # テスト
+│   │   ├── app.ts         # Express アプリ
+│   │   ├── server.ts      # エントリーポイント
+│   │   └── README.md      # バックエンドドキュメント
+│   ├── frontend/          # フロントエンドコード 🚧
+│   ├── types/             # 共通型定義 ✅
+│   └── shared/            # 共通コード
+├── prisma/                # Prisma スキーマ ✅
+│   ├── schema.prisma      # データベーススキーマ
+│   ├── seed.ts            # シードデータ
+│   ├── tests/             # データベーステスト
+│   └── README.md          # データベースドキュメント
+├── docs/                  # ドキュメント
+│   ├── implementation-strategy.md             # 実装戦略書
+│   ├── backend-api-test-specification.md      # APIテスト仕様書
+│   ├── database-test-specification.md         # DBテスト仕様書
+│   └── 仕様書作成支援アプリ機能仕様書.md
+├── .env.example           # 環境変数のサンプル
+├── CLAUDE.md              # Claude Code用のガイドライン
+├── package.json           # 依存関係
+├── tsconfig.json          # TypeScript設定
+├── tsconfig.backend.json  # バックエンドTypeScript設定
+└── README.md              # このファイル
 ```
 
 ## ライセンス
@@ -189,10 +268,33 @@ npm run test:coverage
 
 (TBD: コントリビューションガイドライン)
 
+## 開発ドキュメント
+
+### Phase 1: データベース層
+- 実装完了: ✅
+- ドキュメント: `prisma/README.md`
+- テスト仕様: `docs/database-test-specification.md`
+
+### Phase 2: バックエンドAPI
+- 実装完了: ✅
+- ドキュメント: `src/backend/README.md`
+- テスト仕様: `docs/backend-api-test-specification.md`
+- API エンドポイント:
+  - 認証: `/api/auth/*`
+  - 仕様書: `/api/specifications/*`
+  - スキーマ: `/api/schema/*`
+
+### Phase 3: フロントエンド
+- 実装状況: 🚧 未着手
+- 予定技術: React + TypeScript + Redux Toolkit
+
 ## 参考リソース
 
+- [実装戦略書](./docs/implementation-strategy.md)
 - [OWASP Top 10](https://owasp.org/www-project-top-ten/)
 - [TypeScript Documentation](https://www.typescriptlang.org/docs/)
 - [PostgreSQL Documentation](https://www.postgresql.org/docs/)
+- [Prisma Documentation](https://www.prisma.io/docs/)
+- [Express Documentation](https://expressjs.com/)
 - [React Documentation](https://react.dev/)
 - [Google Cloud Documentation](https://cloud.google.com/docs)
